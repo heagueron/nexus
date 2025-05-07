@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS ventas_devolucion CASCADE;
+DROP TABLE IF EXISTS ventas_lineapedido CASCADE;
+DROP TABLE IF EXISTS ventas_pedido CASCADE;
+DROP TABLE IF EXISTS ventas_factura CASCADE;
+DROP TABLE IF EXISTS ventas_producto CASCADE;
