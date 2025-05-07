@@ -1,15 +1,14 @@
-from rest_framework import viewsets, filters
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework import filters, generics
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import models
 from .models import Producto
 from .serializers import ProductoSerializer
 from .filters import ProductoFilter
 
-class ProductoViewSet(viewsets.ModelViewSet):
+# Mixin para configuración común
+class ProductoMixin:
     """
-    API endpoint para gestionar productos.
+    Mixin con configuración común para las vistas de Producto.
     """
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
@@ -18,11 +17,48 @@ class ProductoViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'codigo', 'marca', 'descripcion']
     ordering_fields = ['nombre', 'precio_venta', 'costo', 'stock']
 
-    @action(detail=False, methods=['get'])
-    def stock_bajo(self, request):
+# Vista para listar y crear productos
+class ProductoListCreateView(ProductoMixin, generics.ListCreateAPIView):
+    """
+    API endpoint para listar y crear productos.
+
+    list:
+    Retorna una lista de todos los productos.
+
+    create:
+    Crea un nuevo producto.
+    """
+    pass
+
+# Vista para recuperar, actualizar y eliminar un producto específico
+class ProductoRetrieveUpdateDestroyView(ProductoMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint para recuperar, actualizar y eliminar un producto específico.
+
+    retrieve:
+    Retorna un producto específico.
+
+    update:
+    Actualiza un producto específico.
+
+    partial_update:
+    Actualiza parcialmente un producto específico.
+
+    destroy:
+    Elimina un producto específico.
+    """
+    pass
+
+# Vista para productos con stock bajo
+class ProductoStockBajoView(ProductoMixin, generics.ListAPIView):
+    """
+    API endpoint para listar productos con stock bajo.
+
+    list:
+    Retorna una lista de productos con stock bajo.
+    """
+    def get_queryset(self):
         """
-        Retorna los productos con stock bajo.
+        Filtra productos con stock menor o igual al nivel de alerta.
         """
-        productos = Producto.objects.filter(stock__lte=models.F('alerta_stock'))
-        serializer = self.get_serializer(productos, many=True)
-        return Response(serializer.data)
+        return Producto.objects.filter(stock__lte=models.F('alerta_stock'))
