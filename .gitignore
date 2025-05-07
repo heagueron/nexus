@@ -6,6 +6,9 @@ __pycache__
 db.sqlite3
 media
 
+# SQL scripts #
+drop_tables.sql
+
 # Backup files #
 *.bak
 
