@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Producto
+from .models import Producto, Cliente
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
@@ -16,6 +16,31 @@ class ProductoAdmin(admin.ModelAdmin):
         }),
         ('Inventario', {
             'fields': ('unidad_medida', 'stock', 'alerta_stock')
+        }),
+        ('Información del Sistema', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion'),
+            'classes': ('collapse',)
+        }),
+    )
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display = ('cliente_id', 'tipo', 'rif', 'nombre', 'email', 'pais', 'telefono')
+    list_filter = ('tipo', 'pais')
+    search_fields = ('nombre', 'rif', 'email', 'direccion', 'nombre_contacto')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('tipo', 'rif', 'nombre', 'email')
+        }),
+        ('Ubicación', {
+            'fields': ('pais', 'direccion')
+        }),
+        ('Contacto', {
+            'fields': ('telefono', 'nombre_contacto', 'telefono_contacto')
+        }),
+        ('Información Adicional', {
+            'fields': ('comentario',)
         }),
         ('Información del Sistema', {
             'fields': ('fecha_creacion', 'fecha_actualizacion'),

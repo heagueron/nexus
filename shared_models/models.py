@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 
 class Producto(models.Model):
     """
@@ -76,3 +76,52 @@ class Producto(models.Model):
     def stock_bajo(self):
         """Indica si el stock está por debajo del nivel de alerta."""
         return self.stock <= self.alerta_stock
+
+
+class Cliente(models.Model):
+    """
+    Modelo para representar clientes en el sistema ERP.
+    """
+    # Opciones para el campo tipo
+    TIPO_CHOICES = [
+        ('juridico', 'Jurídico'),
+        ('natural', 'Natural'),
+    ]
+
+    # Validador para RIF
+    rif_validator = RegexValidator(
+        regex=r'^[VEJG][0-9]{9}$',
+        message='El RIF debe tener el formato: V/E/J/G seguido de 9 dígitos.'
+    )
+
+    # Campos del modelo
+    cliente_id = models.AutoField(primary_key=True, verbose_name="ID del Cliente")
+    tipo = models.CharField(
+        max_length=10,
+        choices=TIPO_CHOICES,
+        verbose_name="Tipo de Cliente"
+    )
+    rif = models.CharField(
+        max_length=10,
+        validators=[rif_validator],
+        unique=True,
+        verbose_name="RIF"
+    )
+    nombre = models.CharField(max_length=100, verbose_name="Nombre")
+    email = models.EmailField(null=True, blank=True, verbose_name="Email")
+    pais = models.CharField(max_length=50, default="Venezuela", verbose_name="País")
+    direccion = models.TextField(verbose_name="Dirección")
+    telefono = models.CharField(max_length=20, null=True, blank=True, verbose_name="Teléfono")
+    nombre_contacto = models.CharField(max_length=100, null=True, blank=True, verbose_name="Nombre de Contacto")
+    telefono_contacto = models.CharField(max_length=20, null=True, blank=True, verbose_name="Teléfono de Contacto")
+    comentario = models.TextField(null=True, blank=True, verbose_name="Comentario")
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f"{self.nombre} ({self.rif})"

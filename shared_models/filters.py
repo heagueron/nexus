@@ -1,6 +1,6 @@
 import django_filters
 from django.db import models
-from .models import Producto
+from .models import Producto, Cliente
 
 class ProductoFilter(django_filters.FilterSet):
     """
@@ -25,3 +25,15 @@ class ProductoFilter(django_filters.FilterSet):
         if value:
             return queryset.filter(stock__lte=models.F('alerta_stock'))
         return queryset.filter(stock__gt=models.F('alerta_stock'))
+
+
+class ClienteFilter(django_filters.FilterSet):
+    """
+    Filtro personalizado para el modelo Cliente.
+    """
+    class Meta:
+        model = Cliente
+        fields = {
+            'tipo': ['exact'],
+            'pais': ['exact'],
+        }

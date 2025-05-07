@@ -1,9 +1,9 @@
 from rest_framework import filters, generics
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import models
-from .models import Producto
-from .serializers import ProductoSerializer
-from .filters import ProductoFilter
+from .models import Producto, Cliente
+from .serializers import ProductoSerializer, ClienteSerializer
+from .filters import ProductoFilter, ClienteFilter
 
 # Mixin para configuración común
 class ProductoMixin:
@@ -62,3 +62,50 @@ class ProductoStockBajoView(ProductoMixin, generics.ListAPIView):
         Filtra productos con stock menor o igual al nivel de alerta.
         """
         return Producto.objects.filter(stock__lte=models.F('alerta_stock'))
+
+
+# Mixin para configuración común de Cliente
+class ClienteMixin:
+    """
+    Mixin con configuración común para las vistas de Cliente.
+    """
+    queryset = Cliente.objects.all()
+    serializer_class = ClienteSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ClienteFilter
+    search_fields = ['nombre', 'rif', 'email', 'direccion', 'nombre_contacto']
+    ordering_fields = ['nombre', 'tipo', 'pais']
+
+
+# Vista para listar y crear clientes
+class ClienteListCreateView(ClienteMixin, generics.ListCreateAPIView):
+    """
+    API endpoint para listar y crear clientes.
+
+    list:
+    Retorna una lista de todos los clientes.
+
+    create:
+    Crea un nuevo cliente.
+    """
+    pass
+
+
+# Vista para recuperar, actualizar y eliminar un cliente específico
+class ClienteRetrieveUpdateDestroyView(ClienteMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint para recuperar, actualizar y eliminar un cliente específico.
+
+    retrieve:
+    Retorna un cliente específico.
+
+    update:
+    Actualiza un cliente específico.
+
+    partial_update:
+    Actualiza parcialmente un cliente específico.
+
+    destroy:
+    Elimina un cliente específico.
+    """
+    pass
