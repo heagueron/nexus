@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Producto, Cliente, Moneda
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from .models import Producto, Cliente, Moneda, Empresa
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
@@ -78,3 +81,71 @@ class MonedaAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+class EmpresaAdmin(admin.ModelAdmin):
+    """
+    Admin personalizado para el modelo Empresa que implementa el patrón singleton.
+    Previene la creación de múltiples instancias y proporciona una interfaz amigable.
+    """
+    list_display = ('nombre_legal', 'rif', 'ciudad', 'telefono', 'email')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('nombre_legal', 'nombre_comercial', 'rif', 'logo', 'es_activa')
+        }),
+        ('Contacto y Ubicación', {
+            'fields': ('direccion_fiscal', 'ciudad', 'estado', 'pais', 'codigo_postal',
+                      'telefono', 'email', 'sitio_web')
+        }),
+        ('Configuración Fiscal', {
+            'fields': ('moneda_base', 'porcentaje_iva', 'aplica_retenciones')
+        }),
+        ('Configuración del Sistema', {
+            'fields': ('formato_factura', 'formato_orden_compra', 'dias_alerta_vencimiento')
+        }),
+        ('Configuración Adicional', {
+            'fields': ('configuracion_adicional',),
+            'classes': ('collapse',)
+        }),
+        ('Información del Sistema', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def has_add_permission(self, request):
+        """Previene la creación de múltiples instancias."""
+        return not Empresa.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        """Previene la eliminación de la única instancia."""
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Redirige a la página de edición de la única instancia si existe,
+        o a la página de creación si no existe ninguna instancia.
+        """
+        try:
+            # Obtener la única instancia
+            empresa = Empresa.objects.get()
+            return HttpResponseRedirect(
+                reverse('admin:shared_models_empresa_change', args=[empresa.pk])
+            )
+        except Empresa.DoesNotExist:
+            return HttpResponseRedirect(
+                reverse('admin:shared_models_empresa_add')
+            )
+        except Empresa.MultipleObjectsReturned:
+            # Si hay múltiples instancias (no debería ocurrir), mostrar la lista
+            messages.warning(
+                request,
+                "Se encontraron múltiples instancias de Empresa. Esto no debería ocurrir."
+            )
+            return super().changelist_view(request, extra_context)
+
+
+# Registrar el modelo Empresa con el admin personalizado
+admin.site.register(Empresa, EmpresaAdmin)

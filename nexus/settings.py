@@ -52,9 +52,12 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'django_filters',
+    'drf_spectacular',
 
     # Local apps
     'shared_models',
+    'almacenes',
+    'inventarios',
 ]
 
 MIDDLEWARE = [
@@ -153,13 +156,52 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
-    'SCHEMA_COERCE_METHOD_NAMES': {
-        'retrieve': 'read',
-        'create': 'write',
-        'update': 'write',
-        'partial_update': 'write',
-        'destroy': 'delete',
-        'list': 'list',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# drf-spectacular settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Nexus ERP API',
+    'DESCRIPTION': 'API para el sistema ERP Nexus',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    # Configuración de UI
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+    },
+
+    # Personalización de la documentación
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SORT_OPERATIONS': False,
+
+    # Metadatos
+    'CONTACT': {
+        'name': 'Soporte Técnico',
+        'email': 'soporte@nexuserp.com',
+    },
+    'LICENSE': {
+        'name': 'Propietario',
+    },
+
+    # Configuración de tags
+    'TAGS': [
+        {'name': 'almacenes', 'description': 'Operaciones relacionadas con almacenes'},
+        {'name': 'ubicaciones', 'description': 'Operaciones relacionadas con ubicaciones dentro de almacenes'},
+        {'name': 'inventarios', 'description': 'Operaciones relacionadas con inventarios'},
+        {'name': 'productos', 'description': 'Operaciones relacionadas con productos'},
+        {'name': 'movimientos', 'description': 'Operaciones relacionadas con movimientos de inventario'},
+    ],
+
+    # Prefijos para operaciones
+    'OPERATION_ID_MAPPING': {
+        'list': 'listar',
+        'create': 'crear',
+        'retrieve': 'obtener',
+        'update': 'actualizar',
+        'partial_update': 'actualizar_parcial',
+        'destroy': 'eliminar',
     },
 }

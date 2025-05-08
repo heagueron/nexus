@@ -1,7 +1,8 @@
 from django.db import models
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MinValueValidator, RegexValidator, EmailValidator
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 
 
 def get_moneda_base_id():
@@ -331,3 +332,238 @@ class Moneda(models.Model):
     def __str__(self):
         base_indicator = " (Base)" if self.es_base else ""
         return f"{self.nombre} ({self.simbolo}){base_indicator}"
+
+
+class EmpresaManager(models.Manager):
+    """
+    Manager personalizado para el modelo Empresa que implementa el patrón singleton.
+    """
+    def get_current(self):
+        """
+        Retorna la única instancia de Empresa, o la crea si no existe.
+        Utiliza caché para mejorar el rendimiento.
+        """
+        # Intentar obtener de caché primero
+        empresa = cache.get('empresa_singleton')
+        if empresa is not None:
+            return empresa
+
+        # Si no está en caché, intentar obtener de la base de datos
+        try:
+            empresa = self.get_queryset().get()
+            # Guardar en caché
+            cache.set('empresa_singleton', empresa, 3600)  # Caché por 1 hora
+            return empresa
+        except self.model.DoesNotExist:
+            # Si no existe, crear una instancia con valores por defecto
+            empresa = self.create(
+                nombre_legal="Mi Empresa",
+                nombre_comercial="Mi Empresa",
+                rif="J000000000",
+                porcentaje_iva=16.0
+            )
+            # Guardar en caché
+            cache.set('empresa_singleton', empresa, 3600)
+            return empresa
+        except self.model.MultipleObjectsReturned:
+            # Si hay múltiples instancias (no debería ocurrir), retornar la primera
+            empresa = self.get_queryset().first()
+            # Guardar en caché
+            cache.set('empresa_singleton', empresa, 3600)
+            return empresa
+
+
+class Empresa(models.Model):
+    """
+    Modelo para representar la información y configuración de la empresa.
+    Implementa el patrón singleton para asegurar que solo exista una instancia.
+    """
+    # Manager personalizado
+    objects = EmpresaManager()
+
+    # Información básica
+    empresa_id = models.AutoField(primary_key=True, verbose_name=_("ID de la Empresa"))
+    nombre_legal = models.CharField(
+        max_length=100,
+        verbose_name=_("Nombre Legal"),
+        help_text=_("Nombre legal completo de la empresa")
+    )
+    nombre_comercial = models.CharField(
+        max_length=100,
+        verbose_name=_("Nombre Comercial"),
+        help_text=_("Nombre comercial o marca de la empresa")
+    )
+    rif = models.CharField(
+        max_length=10,
+        validators=[
+            RegexValidator(
+                regex=r'^[JVG]-[0-9]{8}$',
+                message=_('El RIF debe tener el formato: J/V/G seguido de - seguido de 8 dígitos.')
+            )
+        ],
+        verbose_name=_("RIF"),
+        help_text=_("Registro de Información Fiscal")
+    )
+    logo = models.ImageField(
+        upload_to='empresa/logos/',
+        null=True,
+        blank=True,
+        verbose_name=_("Logo"),
+        help_text=_("Logotipo de la empresa")
+    )
+    es_activa = models.BooleanField(
+        default=True,
+        verbose_name=_("Activa"),
+        help_text=_("Indica si la empresa está activa")
+    )
+
+    # Contacto y ubicación
+    direccion_fiscal = models.TextField(
+        verbose_name=_("Dirección Fiscal"),
+        help_text=_("Dirección fiscal completa")
+    )
+    ciudad = models.CharField(
+        max_length=50,
+        verbose_name=_("Ciudad"),
+        help_text=_("Ciudad de la sede principal")
+    )
+    estado = models.CharField(
+        max_length=50,
+        verbose_name=_("Estado/Provincia"),
+        help_text=_("Estado o provincia")
+    )
+    pais = models.CharField(
+        max_length=50,
+        default="Venezuela",
+        verbose_name=_("País"),
+        help_text=_("País de registro")
+    )
+    codigo_postal = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        verbose_name=_("Código Postal"),
+        help_text=_("Código postal")
+    )
+    telefono = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name=_("Teléfono"),
+        help_text=_("Teléfono principal")
+    )
+    email = models.EmailField(
+        null=True,
+        blank=True,
+        verbose_name=_("Email"),
+        help_text=_("Email corporativo")
+    )
+    sitio_web = models.URLField(
+        null=True,
+        blank=True,
+        verbose_name=_("Sitio Web"),
+        help_text=_("Sitio web de la empresa")
+    )
+
+    # Configuración fiscal
+    moneda_base = models.ForeignKey(
+        'Moneda',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='empresa_moneda_base',
+        verbose_name=_("Moneda Base"),
+        help_text=_("Moneda base para la empresa")
+    )
+    porcentaje_iva = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=16.0,
+        validators=[MinValueValidator(0)],
+        verbose_name=_("Porcentaje de IVA"),
+        help_text=_("Porcentaje de IVA estándar")
+    )
+    aplica_retenciones = models.BooleanField(
+        default=True,
+        verbose_name=_("Aplica Retenciones"),
+        help_text=_("Indica si la empresa aplica retenciones")
+    )
+
+    # Configuración del sistema
+    formato_factura = models.CharField(
+        max_length=50,
+        default="FAC-{year}{month}-{sequence:04d}",
+        verbose_name=_("Formato de Factura"),
+        help_text=_("Formato para numeración de facturas")
+    )
+    formato_orden_compra = models.CharField(
+        max_length=50,
+        default="OC-{year}{month}-{sequence:04d}",
+        verbose_name=_("Formato de Orden de Compra"),
+        help_text=_("Formato para numeración de órdenes de compra")
+    )
+    dias_alerta_vencimiento = models.PositiveIntegerField(
+        default=30,
+        verbose_name=_("Días Alerta Vencimiento"),
+        help_text=_("Días para alertar sobre vencimientos")
+    )
+
+    # Metadatos flexibles
+    configuracion_adicional = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name=_("Configuración Adicional"),
+        help_text=_("Configuraciones adicionales en formato JSON")
+    )
+
+    # Campos de auditoría
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Fecha de Creación")
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Fecha de Actualización")
+    )
+
+    class Meta:
+        verbose_name = _("Empresa")
+        verbose_name_plural = _("Empresas")
+
+    def clean(self):
+        """
+        Valida que solo exista una instancia de Empresa.
+        """
+        if not self.pk and Empresa.objects.exists():
+            raise ValidationError(_("Ya existe una instancia de Empresa. Solo puede haber una."))
+
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe el método save para llamar a clean() antes de guardar
+        y actualizar la caché después de guardar.
+        """
+        self.clean()
+        super().save(*args, **kwargs)
+        # Actualizar caché
+        cache.set('empresa_singleton', self, 3600)
+
+    def delete(self, *args, **kwargs):
+        """
+        Previene la eliminación de la única instancia.
+        """
+        if Empresa.objects.count() <= 1:
+            raise ValidationError(_("No se puede eliminar la única instancia de Empresa."))
+        # Limpiar caché
+        cache.delete('empresa_singleton')
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return self.nombre_comercial
+
+    @classmethod
+    def get_current(cls):
+        """
+        Método de clase para obtener la instancia actual.
+        Es un atajo para Empresa.objects.get_current().
+        """
+        return cls.objects.get_current()

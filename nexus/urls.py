@@ -16,11 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework.documentation import include_docs_urls
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('shared_models.urls')),
+    path('api/', include('almacenes.urls')),
+    path('api/', include('inventarios.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    path('docs/', include_docs_urls(title='Nexus ERP API')),
+
+    # URLs para la documentación de la API con drf-spectacular
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    # Interfaz Swagger UI
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # Interfaz Redoc (alternativa a Swagger)
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
