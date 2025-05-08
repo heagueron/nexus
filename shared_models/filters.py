@@ -1,6 +1,6 @@
 import django_filters
 from django.db import models
-from .models import Producto, Cliente
+from .models import Producto, Cliente, Moneda
 
 class ProductoFilter(django_filters.FilterSet):
     """
@@ -13,7 +13,9 @@ class ProductoFilter(django_filters.FilterSet):
         fields = {
             'marca': ['exact'],
             'unidad_medida': ['exact'],
-            'moneda': ['exact'],
+            'moneda': ['exact'],  # Ahora filtra por ID de moneda
+            'moneda__es_base': ['exact'],  # Filtrar por moneda base
+            'moneda__nombre': ['exact', 'icontains'],  # Filtrar por nombre de moneda
             'exento_iva': ['exact'],
         }
 
@@ -36,4 +38,17 @@ class ClienteFilter(django_filters.FilterSet):
         fields = {
             'tipo': ['exact'],
             'pais': ['exact'],
+        }
+
+
+class MonedaFilter(django_filters.FilterSet):
+    """
+    Filtro personalizado para el modelo Moneda.
+    """
+    class Meta:
+        model = Moneda
+        fields = {
+            'nombre': ['exact', 'icontains'],
+            'es_base': ['exact'],
+            'simbolo': ['exact', 'icontains'],
         }

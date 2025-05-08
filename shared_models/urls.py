@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     ProductoListCreateView, ProductoRetrieveUpdateDestroyView, ProductoStockBajoView,
-    ClienteListCreateView, ClienteRetrieveUpdateDestroyView
+    ClienteListCreateView, ClienteRetrieveUpdateDestroyView,
+    MonedaListCreateView, MonedaRetrieveUpdateDestroyView
 )
 
 urlpatterns = [
@@ -13,4 +14,8 @@ urlpatterns = [
     # URLs para clientes
     path('clientes/', ClienteListCreateView.as_view(), name='cliente-list-create'),
     path('clientes/<int:pk>/', ClienteRetrieveUpdateDestroyView.as_view(), name='cliente-detail'),
+
+    # URLs para monedas
+    path('monedas/', MonedaListCreateView.as_view(), name='moneda-list-create'),
+    path('monedas/<int:pk>/', MonedaRetrieveUpdateDestroyView.as_view(), name='moneda-detail'),
 ]

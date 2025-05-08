@@ -1,9 +1,9 @@
 from rest_framework import filters, generics
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import models
-from .models import Producto, Cliente
-from .serializers import ProductoSerializer, ClienteSerializer
-from .filters import ProductoFilter, ClienteFilter
+from .models import Producto, Cliente, Moneda
+from .serializers import ProductoSerializer, ClienteSerializer, MonedaSerializer
+from .filters import ProductoFilter, ClienteFilter, MonedaFilter
 
 # Mixin para configuración común
 class ProductoMixin:
@@ -107,5 +107,52 @@ class ClienteRetrieveUpdateDestroyView(ClienteMixin, generics.RetrieveUpdateDest
 
     destroy:
     Elimina un cliente específico.
+    """
+    pass
+
+
+# Mixin para configuración común de Moneda
+class MonedaMixin:
+    """
+    Mixin con configuración común para las vistas de Moneda.
+    """
+    queryset = Moneda.objects.all()
+    serializer_class = MonedaSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = MonedaFilter
+    search_fields = ['nombre', 'simbolo']
+    ordering_fields = ['nombre', 'tasa_oficial', 'tasa_mercado', 'es_base']
+
+
+# Vista para listar y crear monedas
+class MonedaListCreateView(MonedaMixin, generics.ListCreateAPIView):
+    """
+    API endpoint para listar y crear monedas.
+
+    list:
+    Retorna una lista de todas las monedas.
+
+    create:
+    Crea una nueva moneda.
+    """
+    pass
+
+
+# Vista para recuperar, actualizar y eliminar una moneda específica
+class MonedaRetrieveUpdateDestroyView(MonedaMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint para recuperar, actualizar y eliminar una moneda específica.
+
+    retrieve:
+    Retorna una moneda específica.
+
+    update:
+    Actualiza una moneda específica.
+
+    partial_update:
+    Actualiza parcialmente una moneda específica.
+
+    destroy:
+    Elimina una moneda específica.
     """
     pass
