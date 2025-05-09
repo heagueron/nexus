@@ -203,7 +203,7 @@ class ProductoAlimentoAdmin(admin.ModelAdmin):
     list_display = ('producto_id', 'nombre', 'codigo', 'categoria_display',
                     'fecha_expiracion', 'dias_para_vencer_display',
                     'tipo_conservacion_display', 'es_organico_display')
-    list_filter = ('categoria', 'tipo_conservacion', 'es_organico', 'contiene_alergenos')
+    list_filter = ('categoria_alimento', 'tipo_conservacion', 'es_organico', 'contiene_alergenos')
     search_fields = ('nombre', 'codigo', 'marca', 'descripcion', 'ingredientes')
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion', 'dias_para_vencer',
                        'vida_util_total', 'porcentaje_vida_util_restante', 'esta_vencido')
@@ -213,7 +213,7 @@ class ProductoAlimentoAdmin(admin.ModelAdmin):
             'fields': ('nombre', 'marca', 'descripcion', 'codigo', 'moneda', 'precio_venta', 'exento_iva', 'costo')
         }),
         (_('Información de Alimento'), {
-            'fields': ('categoria', 'ingredientes', 'fecha_elaboracion', 'fecha_expiracion',
+            'fields': ('categoria_alimento', 'ingredientes', 'fecha_elaboracion', 'fecha_expiracion',
                       'dias_para_vencer', 'vida_util_total', 'porcentaje_vida_util_restante', 'esta_vencido')
         }),
         (_('Conservación'), {
@@ -234,7 +234,7 @@ class ProductoAlimentoAdmin(admin.ModelAdmin):
 
     def categoria_display(self, obj):
         """Muestra la categoría con formato."""
-        return obj.get_categoria_display()
+        return obj.get_categoria_alimento_display()
     categoria_display.short_description = _("Categoría")
 
     def tipo_conservacion_display(self, obj):

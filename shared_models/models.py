@@ -17,26 +17,99 @@ def get_moneda_base_id():
     except (Moneda.DoesNotExist, Moneda.MultipleObjectsReturned):
         return None
 
+class EstadoProducto(models.TextChoices):
+    """Opciones para el estado de un producto"""
+    ACTIVO = 'activo', _('Activo')
+    DESCONTINUADO = 'descontinuado', _('Descontinuado')
+    AGOTADO = 'agotado', _('Agotado')
+    SUSPENDIDO = 'suspendido', _('Suspendido')
+    BORRADOR = 'borrador', _('Borrador')
+
+
+class TipoImpuesto(models.TextChoices):
+    """Opciones para el tipo de impuesto aplicable"""
+    EXENTO = 'exento', _('Exento')
+    GENERAL = 'general', _('General')
+    REDUCIDO = 'reducido', _('Reducido')
+    ADICIONAL = 'adicional', _('Adicional')
+
+
 class Producto(models.Model):
     """
-    Modelo para representar productos en el sistema ERP.
+    Modelo base para representar productos en el sistema ERP.
+    Sirve como clase base para la herencia de tipos específicos de productos.
     """
     # Opciones para el campo unidad_medida
     UNIDAD_MEDIDA_CHOICES = [
-        ('Kg', 'Kilogramos'),
-        ('unidades', 'Unidades'),
-        ('Cajas', 'Cajas'),
-        ('Lts', 'Litros'),
+        ('kg', 'Kilogramos'),
+        ('g', 'Gramos'),
+        ('l', 'Litros'),
+        ('ml', 'Mililitros'),
+        ('unidad', 'Unidades'),
+        ('caja', 'Cajas'),
+        ('paquete', 'Paquetes'),
+        ('docena', 'Docenas'),
+        ('m', 'Metros'),
+        ('cm', 'Centímetros'),
+        ('m2', 'Metros cuadrados'),
+        ('m3', 'Metros cúbicos'),
+        ('par', 'Pares'),
+        ('rollo', 'Rollos'),
+        ('hora', 'Horas'),
+        ('servicio', 'Servicio'),
+        ('otro', 'Otro'),
     ]
 
-    # La moneda ahora es una relación con el modelo Moneda
-
     # Campos del modelo
-    producto_id = models.AutoField(primary_key=True, verbose_name="ID del Producto")
-    nombre = models.CharField(max_length=100, verbose_name="Nombre")
-    marca = models.CharField(max_length=50, null=True, blank=True, verbose_name="Marca")
-    descripcion = models.TextField(verbose_name="Descripción")
-    codigo = models.CharField(max_length=50, unique=True, verbose_name="Código")
+    producto_id = models.AutoField(
+        primary_key=True,
+        verbose_name=_("ID del Producto")
+    )
+    nombre = models.CharField(
+        max_length=100,
+        verbose_name=_("Nombre"),
+        help_text=_("Nombre comercial del producto")
+    )
+    marca = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Marca"),
+        help_text=_("Marca del producto")
+    )
+    descripcion = models.TextField(
+        verbose_name=_("Descripción"),
+        help_text=_("Descripción detallada del producto")
+    )
+    codigo = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name=_("Código"),
+        help_text=_("Código único del producto")
+    )
+    codigo_barras = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Código de Barras"),
+        help_text=_("Código de barras del producto (EAN, UPC, etc.)")
+    )
+    sku = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("SKU"),
+        help_text=_("Stock Keeping Unit - Código interno de gestión")
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoProducto.choices,
+        default=EstadoProducto.ACTIVO,
+        verbose_name=_("Estado"),
+        help_text=_("Estado actual del producto")
+    )
+
+    # Campos financieros
     moneda = models.ForeignKey(
         'Moneda',
         on_delete=models.PROTECT,  # Evita eliminar monedas que están en uso
@@ -49,48 +122,298 @@ class Producto(models.Model):
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        verbose_name="Precio de Venta"
+        verbose_name=_("Precio de Venta"),
+        help_text=_("Precio de venta al público")
     )
-    exento_iva = models.BooleanField(
-        default=False,
-        verbose_name="Exento de IVA"
+    precio_mayorista = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        verbose_name=_("Precio Mayorista"),
+        help_text=_("Precio para ventas al por mayor")
+    )
+    precio_minimo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        verbose_name=_("Precio Mínimo"),
+        help_text=_("Precio mínimo permitido para ventas")
     )
     costo = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        verbose_name="Costo"
+        verbose_name=_("Costo"),
+        help_text=_("Costo de adquisición o producción")
     )
+    tipo_impuesto = models.CharField(
+        max_length=20,
+        choices=TipoImpuesto.choices,
+        default=TipoImpuesto.GENERAL,
+        verbose_name=_("Tipo de Impuesto"),
+        help_text=_("Tipo de impuesto aplicable al producto")
+    )
+    exento_iva = models.BooleanField(
+        default=False,
+        verbose_name=_("Exento de IVA"),
+        help_text=_("Indica si el producto está exento de IVA")
+    )
+
+    # Campos de inventario
     unidad_medida = models.CharField(
         max_length=10,
         choices=UNIDAD_MEDIDA_CHOICES,
-        verbose_name="Unidad de Medida"
+        verbose_name=_("Unidad de Medida"),
+        help_text=_("Unidad de medida para el producto")
     )
-    stock = models.PositiveIntegerField(default=0, verbose_name="Stock")
-    alerta_stock = models.PositiveIntegerField(default=5, verbose_name="Alerta de Stock")
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
+    stock = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name=_("Stock"),
+        help_text=_("Cantidad disponible en inventario")
+    )
+    alerta_stock = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=5,
+        validators=[MinValueValidator(0)],
+        verbose_name=_("Alerta de Stock"),
+        help_text=_("Cantidad mínima antes de generar alerta")
+    )
+    stock_maximo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name=_("Stock Máximo"),
+        help_text=_("Cantidad máxima recomendada en inventario")
+    )
+    es_inventariable = models.BooleanField(
+        default=True,
+        verbose_name=_("Es Inventariable"),
+        help_text=_("Indica si el producto se gestiona en inventario")
+    )
+
+    # Campos de categorización
+    categoria = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Categoría"),
+        help_text=_("Categoría general del producto")
+    )
+    subcategoria = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Subcategoría"),
+        help_text=_("Subcategoría del producto")
+    )
+    tags = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+        verbose_name=_("Etiquetas"),
+        help_text=_("Etiquetas separadas por comas para facilitar búsquedas")
+    )
+
+    # Campos de metadatos
+    metadatos = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name=_("Metadatos"),
+        help_text=_("Información adicional en formato JSON")
+    )
+
+    # Campos de auditoría
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Fecha de Creación")
+    )
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Fecha de Actualización")
+    )
+    creado_por = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Creado Por"),
+        help_text=_("Usuario que creó el registro")
+    )
+    actualizado_por = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name=_("Actualizado Por"),
+        help_text=_("Usuario que actualizó por última vez el registro")
+    )
 
     class Meta:
-        verbose_name = "Producto"
-        verbose_name_plural = "Productos"
+        verbose_name = _("Producto")
+        verbose_name_plural = _("Productos")
         ordering = ['nombre']
+        indexes = [
+            models.Index(fields=['nombre']),
+            models.Index(fields=['codigo']),
+            models.Index(fields=['estado']),
+            models.Index(fields=['categoria']),
+        ]
 
     def __str__(self):
         return f"{self.nombre} ({self.codigo})"
 
+    def clean(self):
+        """
+        Validaciones adicionales para el modelo.
+        """
+        super().clean()
+
+        # Validar que el precio mínimo no sea mayor que el precio de venta
+        if self.precio_minimo is not None and self.precio_minimo > self.precio_venta:
+            raise ValidationError({
+                'precio_minimo': _("El precio mínimo no puede ser mayor que el precio de venta.")
+            })
+
+        # Validar que el precio mayorista no sea mayor que el precio de venta
+        if self.precio_mayorista is not None and self.precio_mayorista > self.precio_venta:
+            raise ValidationError({
+                'precio_mayorista': _("El precio mayorista no puede ser mayor que el precio de venta.")
+            })
+
+        # Validar coherencia entre exento_iva y tipo_impuesto
+        if self.exento_iva and self.tipo_impuesto != TipoImpuesto.EXENTO:
+            self.tipo_impuesto = TipoImpuesto.EXENTO
+
+        if not self.exento_iva and self.tipo_impuesto == TipoImpuesto.EXENTO:
+            self.exento_iva = True
+
+        # Validar stock máximo
+        if self.stock_maximo is not None and self.stock_maximo < self.alerta_stock:
+            raise ValidationError({
+                'stock_maximo': _("El stock máximo no puede ser menor que la alerta de stock.")
+            })
+
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe el método save para llamar a clean() antes de guardar.
+        """
+        self.clean()
+        super().save(*args, **kwargs)
+
+    # Propiedades financieras
     @property
     def margen(self):
-        """Calcula el margen de ganancia del producto."""
+        """
+        Calcula el margen de ganancia del producto en porcentaje.
+
+        Returns:
+            float: Margen de ganancia en porcentaje
+        """
         if self.costo == 0:
             return 0
         return ((self.precio_venta - self.costo) / self.costo) * 100
 
     @property
+    def margen_valor(self):
+        """
+        Calcula el margen de ganancia del producto en valor absoluto.
+
+        Returns:
+            Decimal: Margen de ganancia en valor absoluto
+        """
+        return self.precio_venta - self.costo
+
+    @property
+    def rentabilidad(self):
+        """
+        Calcula la rentabilidad del producto (margen sobre precio de venta).
+
+        Returns:
+            float: Rentabilidad en porcentaje
+        """
+        if self.precio_venta == 0:
+            return 0
+        return ((self.precio_venta - self.costo) / self.precio_venta) * 100
+
+    @property
+    def precio_con_iva(self):
+        """
+        Calcula el precio con IVA incluido.
+
+        Returns:
+            Decimal: Precio con IVA
+        """
+        from django.conf import settings
+
+        if self.exento_iva:
+            return self.precio_venta
+
+        # Obtener el porcentaje de IVA de la configuración
+        try:
+            empresa = Empresa.get_current()
+            porcentaje_iva = empresa.porcentaje_iva
+        except:
+            # Valor por defecto si no se puede obtener
+            porcentaje_iva = 16.0
+
+        return self.precio_venta * (1 + (porcentaje_iva / 100))
+
+    # Propiedades de inventario
+    @property
     def stock_bajo(self):
-        """Indica si el stock está por debajo del nivel de alerta."""
+        """
+        Indica si el stock está por debajo del nivel de alerta.
+
+        Returns:
+            bool: True si el stock está por debajo del nivel de alerta
+        """
         return self.stock <= self.alerta_stock
 
+    @property
+    def stock_alto(self):
+        """
+        Indica si el stock está por encima del nivel máximo.
+
+        Returns:
+            bool: True si el stock está por encima del nivel máximo
+        """
+        if self.stock_maximo is None:
+            return False
+        return self.stock >= self.stock_maximo
+
+    @property
+    def porcentaje_stock(self):
+        """
+        Calcula el porcentaje de stock respecto al máximo.
+
+        Returns:
+            float: Porcentaje de stock (0-100)
+        """
+        if self.stock_maximo is None or self.stock_maximo == 0:
+            return 100 if self.stock > 0 else 0
+
+        porcentaje = (self.stock / self.stock_maximo) * 100
+        return min(100, porcentaje)  # No superar el 100%
+
+    @property
+    def valor_inventario(self):
+        """
+        Calcula el valor total del inventario para este producto.
+
+        Returns:
+            Decimal: Valor del inventario
+        """
+        return self.stock * self.costo
+
+    # Métodos para conversión de moneda
     def _convertir_valor(self, valor, moneda_destino, usar_tasa_mercado=False):
         """
         Método interno para convertir un valor monetario a otra moneda.
@@ -160,6 +483,25 @@ class Producto(models.Model):
         """
         return self._convertir_valor(self.precio_venta, moneda_destino, usar_tasa_mercado)
 
+    def precio_mayorista_en_moneda(self, moneda_destino, usar_tasa_mercado=False):
+        """
+        Calcula el precio mayorista del producto en otra moneda.
+
+        Args:
+            moneda_destino: Instancia del modelo Moneda o ID de la moneda destino
+            usar_tasa_mercado: Si es True, usa la tasa de mercado; si es False, usa la tasa oficial (por defecto)
+
+        Returns:
+            Decimal: Precio mayorista convertido a la moneda destino
+
+        Raises:
+            ValueError: Si la moneda destino no existe o si el producto no tiene precio mayorista
+            TypeError: Si el argumento no es una instancia de Moneda o un ID válido
+        """
+        if self.precio_mayorista is None:
+            return None
+        return self._convertir_valor(self.precio_mayorista, moneda_destino, usar_tasa_mercado)
+
     def costo_en_moneda(self, moneda_destino, usar_tasa_mercado=False):
         """
         Calcula el costo del producto en otra moneda.
@@ -213,6 +555,112 @@ class Producto(models.Model):
 
         # Formatear el precio con el símbolo
         return f"{simbolo} {precio:,.2f}"
+
+    def costo_formateado(self, moneda=None, usar_tasa_mercado=False):
+        """
+        Devuelve el costo del producto formateado con el símbolo de la moneda.
+
+        Args:
+            moneda: Instancia del modelo Moneda, ID de la moneda o None para usar la moneda del producto
+            usar_tasa_mercado: Si es True, usa la tasa de mercado; si es False, usa la tasa oficial (por defecto)
+
+        Returns:
+            str: Costo formateado con el símbolo de la moneda
+
+        Raises:
+            ValueError: Si la moneda no existe
+            TypeError: Si el argumento no es una instancia de Moneda, un ID válido o None
+        """
+        if moneda is None:
+            # Usar la moneda del producto
+            costo = self.costo
+            simbolo = self.moneda.simbolo
+        else:
+            # Convertir a la moneda especificada
+            costo = self.costo_en_moneda(moneda, usar_tasa_mercado)
+
+            # Obtener el símbolo de la moneda
+            if isinstance(moneda, int):
+                try:
+                    simbolo = Moneda.objects.get(moneda_id=moneda).simbolo
+                except Moneda.DoesNotExist:
+                    raise ValueError(f"No existe una moneda con ID {moneda}")
+            elif isinstance(moneda, Moneda):
+                simbolo = moneda.simbolo
+            else:
+                raise TypeError("El argumento debe ser una instancia de Moneda, un ID válido o None")
+
+        # Formatear el costo con el símbolo
+        return f"{simbolo} {costo:,.2f}"
+
+    # Métodos de utilidad
+    def get_tipo_producto(self):
+        """
+        Determina el tipo específico de producto.
+
+        Returns:
+            str: Tipo de producto ('base', 'alimento', 'electronico', etc.)
+        """
+        from inventarios.models import ProductoAlimento, ProductoElectronico
+
+        try:
+            if hasattr(self, 'productoalimento'):
+                return 'alimento'
+        except ProductoAlimento.DoesNotExist:
+            pass
+
+        try:
+            if hasattr(self, 'productoelectronico'):
+                return 'electronico'
+        except ProductoElectronico.DoesNotExist:
+            pass
+
+        return 'base'
+
+    def get_instancia_especifica(self):
+        """
+        Obtiene la instancia específica del producto (alimento, electrónico, etc.)
+
+        Returns:
+            Producto: Instancia específica del producto o self si es base
+        """
+        tipo = self.get_tipo_producto()
+
+        if tipo == 'alimento':
+            return self.productoalimento
+        elif tipo == 'electronico':
+            return self.productoelectronico
+
+        return self
+
+    @classmethod
+    def buscar(cls, texto, incluir_inactivos=False):
+        """
+        Busca productos por texto en varios campos.
+
+        Args:
+            texto: Texto a buscar
+            incluir_inactivos: Si es True, incluye productos no activos
+
+        Returns:
+            QuerySet: Productos que coinciden con la búsqueda
+        """
+        from django.db.models import Q
+
+        query = Q(nombre__icontains=texto) | \
+                Q(codigo__icontains=texto) | \
+                Q(marca__icontains=texto) | \
+                Q(descripcion__icontains=texto) | \
+                Q(codigo_barras__icontains=texto) | \
+                Q(sku__icontains=texto) | \
+                Q(tags__icontains=texto)
+
+        queryset = cls.objects.filter(query)
+
+        if not incluir_inactivos:
+            queryset = queryset.filter(estado=EstadoProducto.ACTIVO)
+
+        return queryset
 
 
 class Cliente(models.Model):

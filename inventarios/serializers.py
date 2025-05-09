@@ -228,7 +228,7 @@ class ProductoAlimentoSerializer(serializers.ModelSerializer):
     """
     Serializador para el modelo ProductoAlimento.
     """
-    categoria_display = serializers.CharField(source='get_categoria_display', read_only=True)
+    categoria_display = serializers.CharField(source='get_categoria_alimento_display', read_only=True)
     tipo_conservacion_display = serializers.CharField(source='get_tipo_conservacion_display', read_only=True)
     moneda_nombre = serializers.CharField(source='moneda.nombre', read_only=True)
     moneda_simbolo = serializers.CharField(source='moneda.simbolo', read_only=True)
@@ -247,7 +247,7 @@ class ProductoAlimentoSerializer(serializers.ModelSerializer):
             'unidad_medida', 'stock', 'alerta_stock', 'margen', 'stock_bajo',
             'fecha_elaboracion', 'fecha_expiracion', 'ingredientes', 'permiso_sanitario',
             'tipo_conservacion', 'tipo_conservacion_display', 'temperatura_minima', 'temperatura_maxima',
-            'categoria', 'categoria_display', 'es_organico', 'contiene_alergenos', 'alergenos',
+            'categoria_alimento', 'categoria_display', 'es_organico', 'contiene_alergenos', 'alergenos',
             'informacion_nutricional', 'pais_origen',
             'esta_vencido', 'dias_para_vencer', 'vida_util_total', 'porcentaje_vida_util_restante',
             'fecha_creacion', 'fecha_actualizacion'
@@ -263,7 +263,7 @@ class ProductoAlimentoListSerializer(serializers.ModelSerializer):
     """
     Serializador simplificado para listar productos alimenticios.
     """
-    categoria_display = serializers.CharField(source='get_categoria_display', read_only=True)
+    categoria_display = serializers.CharField(source='get_categoria_alimento_display', read_only=True)
     tipo_conservacion_display = serializers.CharField(source='get_tipo_conservacion_display', read_only=True)
     moneda_simbolo = serializers.CharField(source='moneda.simbolo', read_only=True)
     dias_para_vencer = serializers.IntegerField(read_only=True)

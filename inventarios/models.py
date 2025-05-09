@@ -581,12 +581,12 @@ class ProductoAlimento(Producto):
         verbose_name=_("Temperatura Máxima (°C)"),
         help_text=_("Temperatura máxima de conservación en grados Celsius")
     )
-    categoria = models.CharField(
+    categoria_alimento = models.CharField(
         max_length=20,
         choices=CategoriaAlimento.choices,
         default=CategoriaAlimento.OTRO,
-        verbose_name=_("Categoría"),
-        help_text=_("Categoría del alimento")
+        verbose_name=_("Categoría de Alimento"),
+        help_text=_("Categoría específica del alimento")
     )
     es_organico = models.BooleanField(
         default=False,
