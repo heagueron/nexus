@@ -7,13 +7,21 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Sum, F, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
-from .models import Inventario, MovimientoInventario
+from .models import (
+    Inventario, MovimientoInventario,
+    ProductoAlimento, ProductoElectronico
+)
 from .serializers import (
     InventarioSerializer, InventarioListSerializer, InventarioDetailSerializer,
     MovimientoInventarioSerializer, MovimientoInventarioListSerializer,
-    AjusteInventarioSerializer, ReservaInventarioSerializer, LiberacionInventarioSerializer
+    AjusteInventarioSerializer, ReservaInventarioSerializer, LiberacionInventarioSerializer,
+    ProductoAlimentoSerializer, ProductoAlimentoListSerializer,
+    ProductoElectronicoSerializer, ProductoElectronicoListSerializer
 )
-from .filters import InventarioFilter, MovimientoInventarioFilter
+from .filters import (
+    InventarioFilter, MovimientoInventarioFilter,
+    ProductoAlimentoFilter, ProductoElectronicoFilter
+)
 
 
 # Mixin para configuración común de Inventario
@@ -394,3 +402,135 @@ class MovimientoInventarioRetrieveView(MovimientoInventarioMixin, generics.Retri
             'inventario', 'inventario__producto', 'inventario__almacen',
             'ubicacion_origen', 'ubicacion_destino'
         )
+
+
+# Vistas para ProductoAlimento
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="Listar productos alimenticios",
+        description="Retorna una lista paginada de todos los productos alimenticios.",
+        tags=["productos-alimentos"],
+    ),
+    create=extend_schema(
+        summary="Crear producto alimenticio",
+        description="Crea un nuevo producto alimenticio.",
+        tags=["productos-alimentos"],
+    )
+)
+class ProductoAlimentoListCreateView(generics.ListCreateAPIView):
+    """
+    API endpoint para listar y crear productos alimenticios.
+    """
+    queryset = ProductoAlimento.objects.all()
+    permission_classes = [AllowAny]  # Permitir acceso sin autenticación (solo para desarrollo)
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ProductoAlimentoFilter
+    search_fields = ['nombre', 'codigo', 'marca', 'descripcion', 'ingredientes']
+    ordering_fields = ['nombre', 'codigo', 'fecha_expiracion', 'categoria']
+
+    def get_serializer_class(self):
+        """
+        Utiliza un serializador diferente para listar y crear.
+        """
+        if self.request.method == 'GET':
+            return ProductoAlimentoListSerializer
+        return ProductoAlimentoSerializer
+
+
+@extend_schema_view(
+    retrieve=extend_schema(
+        summary="Obtener detalle de producto alimenticio",
+        description="Retorna información detallada de un producto alimenticio específico.",
+        tags=["productos-alimentos"],
+    ),
+    update=extend_schema(
+        summary="Actualizar producto alimenticio",
+        description="Actualiza un producto alimenticio existente.",
+        tags=["productos-alimentos"],
+    ),
+    partial_update=extend_schema(
+        summary="Actualizar parcialmente producto alimenticio",
+        description="Actualiza parcialmente un producto alimenticio existente.",
+        tags=["productos-alimentos"],
+    ),
+    destroy=extend_schema(
+        summary="Eliminar producto alimenticio",
+        description="Elimina un producto alimenticio existente.",
+        tags=["productos-alimentos"],
+    )
+)
+class ProductoAlimentoRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint para recuperar, actualizar y eliminar un producto alimenticio específico.
+    """
+    queryset = ProductoAlimento.objects.all()
+    serializer_class = ProductoAlimentoSerializer
+    permission_classes = [AllowAny]  # Permitir acceso sin autenticación (solo para desarrollo)
+    lookup_field = 'producto_id'
+
+
+# Vistas para ProductoElectronico
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="Listar productos electrónicos",
+        description="Retorna una lista paginada de todos los productos electrónicos.",
+        tags=["productos-electronicos"],
+    ),
+    create=extend_schema(
+        summary="Crear producto electrónico",
+        description="Crea un nuevo producto electrónico.",
+        tags=["productos-electronicos"],
+    )
+)
+class ProductoElectronicoListCreateView(generics.ListCreateAPIView):
+    """
+    API endpoint para listar y crear productos electrónicos.
+    """
+    queryset = ProductoElectronico.objects.all()
+    permission_classes = [AllowAny]  # Permitir acceso sin autenticación (solo para desarrollo)
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ProductoElectronicoFilter
+    search_fields = ['nombre', 'codigo', 'marca', 'descripcion', 'modelo', 'fabricante']
+    ordering_fields = ['nombre', 'codigo', 'fabricante', 'tipo']
+
+    def get_serializer_class(self):
+        """
+        Utiliza un serializador diferente para listar y crear.
+        """
+        if self.request.method == 'GET':
+            return ProductoElectronicoListSerializer
+        return ProductoElectronicoSerializer
+
+
+@extend_schema_view(
+    retrieve=extend_schema(
+        summary="Obtener detalle de producto electrónico",
+        description="Retorna información detallada de un producto electrónico específico.",
+        tags=["productos-electronicos"],
+    ),
+    update=extend_schema(
+        summary="Actualizar producto electrónico",
+        description="Actualiza un producto electrónico existente.",
+        tags=["productos-electronicos"],
+    ),
+    partial_update=extend_schema(
+        summary="Actualizar parcialmente producto electrónico",
+        description="Actualiza parcialmente un producto electrónico existente.",
+        tags=["productos-electronicos"],
+    ),
+    destroy=extend_schema(
+        summary="Eliminar producto electrónico",
+        description="Elimina un producto electrónico existente.",
+        tags=["productos-electronicos"],
+    )
+)
+class ProductoElectronicoRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint para recuperar, actualizar y eliminar un producto electrónico específico.
+    """
+    queryset = ProductoElectronico.objects.all()
+    serializer_class = ProductoElectronicoSerializer
+    permission_classes = [AllowAny]  # Permitir acceso sin autenticación (solo para desarrollo)
+    lookup_field = 'producto_id'

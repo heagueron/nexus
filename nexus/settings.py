@@ -193,6 +193,8 @@ SPECTACULAR_SETTINGS = {
         {'name': 'inventarios', 'description': 'Operaciones relacionadas con inventarios'},
         {'name': 'productos', 'description': 'Operaciones relacionadas con productos'},
         {'name': 'movimientos', 'description': 'Operaciones relacionadas con movimientos de inventario'},
+        {'name': 'productos-alimentos', 'description': 'Operaciones relacionadas con productos alimenticios'},
+        {'name': 'productos-electronicos', 'description': 'Operaciones relacionadas con productos electrónicos'},
     ],
 
     # Prefijos para operaciones
